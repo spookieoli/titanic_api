@@ -35,6 +35,32 @@ class DBHandler:
             max_overflow=5  # Allow up to 5 extra connections
         )
 
+    def get_stddev(self, table: str, columns: List) -> List:
+        """
+        Calculates the standard deviation for specified columns in a given table.
+
+        This method constructs a SQL query to calculate the standard deviation
+        for the provided columns in the specified table. If the `columns` list
+        is empty, it directly returns an empty list. Otherwise, it formulates
+        and executes the query to obtain the calculated values for standard
+        deviation.
+
+        :param table: The name of the table where the standard deviation is
+                      calculated.
+        :type table: str
+        :param columns: A list containing the column names on which the standard
+                        deviation computation is performed. If empty, no query
+                        is executed.
+        :type columns: List
+        :return: A list of results from the standard deviation computation for
+                 the specified columns.
+        :rtype: List
+        """
+        if len(columns) == 0:
+            return []
+        sql = f"SELECT STDDEV({', '.join(columns)}) FROM {table}"
+        return self._execute_query(sql)
+
     def get_distinct_values(self, table: str, columns: List) -> List:
         """
         Retrieves distinct values from specified columns in a database table.
