@@ -20,7 +20,7 @@ class DBHandler:
     :type _engine: sqlalchemy.engine.base.Engine
     """
 
-    def __init__(self, db_url: str = "sqlite:///../data/titanic.db") -> None:
+    def __init__(self, db_url: str = "sqlite:///./data/titanic.db") -> None:
         """
         Initializes the database connection and creates an engine with a connection pool.
 
@@ -152,53 +152,50 @@ class DBHandler:
         else:
             return []
 
-    def get_min(self, table: str, column: str) -> List:
+    def get_min(self, table: str, columns: List[str]) -> List:
         """
-        Retrieve the minimum value from a specified column in a given table.
+        Get the minimum values of the specified columns from a given database table.
 
-        This function checks if the given column exists in the specified table and if the
-        table is present in the database. If both conditions are satisfied, it constructs
-        and executes a SQL query to fetch the minimum value from the specified column of
-        the table. If the column or table is not valid, it returns an empty list.
+        This method checks if the given table and columns exist in the database
+        before executing the query. If the columns and table are valid, it retrieves
+        the minimum values for the specified columns from the table. If the table or
+        columns are invalid, it returns an empty list without executing the query.
 
-        :param table: The name of the table from which to retrieve data. Must be a valid
-                      table in the database.
+        :param table: Name of the table in the database.
         :type table: str
-        :param column: The name of the column for which to find the minimum value. Must
-                       belong to the specified table.
-        :type column: str
-        :return: A list containing the result of the SQL query, which includes the minimum
-                 value from the specified column, or an empty list if the table or column
-                 is invalid.
+        :param columns: List of column names for which the minimum values are to
+            be retrieved.
+        :type columns: List[str]
+        :return: A list containing the minimum values for the specified columns if
+            valid; otherwise, an empty list.
         :rtype: List
         """
-        if self.check_table_column_exist(table, [column]):
-            sql = text(f"SELECT MIN({column}) FROM {table}")
+        if self.check_table_column_exist(table, columns):
+            sql = text(f"SELECT MIN({', '.join(columns)}) FROM {table}")
             return self._execute_query(sql)
         return []
 
-    def get_max(self, table: str, column: str) -> List:
+    def get_max(self, table: str, columns: List[str]) -> List:
         """
-        Retrieve the maximum value from a specified column within a table.
+        Retrieves the maximum values for specified columns from a given table.
 
-        This function queries the database for the largest value in the specified
-        column of the provided table name. If the table or column does not exist
-        in the database schema, the function returns an empty list. It utilizes
-        the constructed SQL query to fetch the maximum value from the database.
+        The method checks if the specified table and columns exist before executing
+        an SQL query to fetch the maximum values for the given columns from the table.
+        If the table or columns do not exist, it returns an empty list.
 
-        :param table: The name of the database table from which to retrieve the
-            maximum value.
+        :param table: The name of the table from which the maximum values should
+                      be retrieved.
+        :param columns: A list of column names to fetch their maximum values
+                        from the specified table.
         :type table: str
-        :param column: The name of the column from within the table, whose
-            maximum value is to be retrieved.
-        :type column: str
-        :return: The result of the SQL query, containing the maximum value, or
-            an empty list if the table or column is invalid.
+        :type columns: List[str]
+        :return: A list containing the maximum values from the specified columns.
+                 If the table or columns do not exist, an empty list is returned.
         :rtype: List
         """
-        if self.check_table_column_exist(table, [column]) is False:
+        if self.check_table_column_exist(table, columns) is False:
             return []
-        sql = text(f"SELECT MAX({column}) FROM {table}")
+        sql = text(f"SELECT MAX({', '.join(columns)}) FROM {table}")
         return self._execute_query(sql)
 
     def get_mean(self, table: str, column: str) -> List:
@@ -324,7 +321,3 @@ class DBHandler:
             json_list.append(row_data)
         return json_list
 
-
-if __name__ == "__main__":
-    d = DBHandler()
-    print(d.get_values("Observation", ["survived", "pclass"]))

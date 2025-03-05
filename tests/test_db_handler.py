@@ -7,7 +7,7 @@ from utils.db_handler import DBHandler
 
 @pytest.fixture(scope="module")
 def db_handler():
-    handler = DBHandler()
+    handler = DBHandler("sqlite:///../data/titanic.db")
     return handler
 
 

@@ -1,6 +1,11 @@
 import fastapi
 import uvicorn
+from utils.data_model import Query, QueryResult
+from utils.db_handler import DBHandler
+import logging
 
+# create logging
+logging.basicConfig(filename='app.log', level=logging.DEBUG)
 
 class App:
     """
@@ -12,21 +17,41 @@ class App:
     application hosting on a server.
 
     :ivar _port: The port on which the application is set to run.
-    :type _port: str
+    :type _port: int
     :ivar _ip: The IP address the application binds to.
     :type _ip: str
     :ivar _app: The FastAPI application instance associated with this app.
     :type _app: fastapi.FastAPI
     """
 
-    def __init__(self, ip: str = "0.0.0.0", port: str = 8080) -> None:
+    def __init__(self, ip: str = "localhost", port: int = 8000) -> None:
         # create instance variables
         self._port = port
         self._ip = ip
         self._app = fastapi.FastAPI()
+        self._db_handler = DBHandler()
+        self._routes()
 
     def _routes(self) -> None:
-        pass
+        @self._app.post("/getall")
+        async def getall(query: Query) -> QueryResult:
+            logging.debug(f"Received query: {query}")
+            return QueryResult(result=self._db_handler.get_all(query.query_table))
+
+        @self._app.post("/getallcolumns")
+        async def get(query: Query) -> QueryResult:
+            logging.debug(f"Received query: {query}")
+            return QueryResult(result=self._db_handler.get_values(query.query_table, query.query_columns))
+
+        @self._app.post("/max")
+        async def get(query: Query) -> QueryResult:
+            logging.debug(f"Received query: {query}")
+            return QueryResult(result=self._db_handler.get_max(query.query_table, query.query_columns))
+
+        @self._app.post("/min")
+        async def get(query: Query) -> QueryResult:
+            logging.debug(f"Received query: {query}")
+            return QueryResult(result=self._db_handler.get_min(query.query_table, query.query_columns))
 
     def run(self) -> None:
         """
@@ -37,4 +62,8 @@ class App:
 
         :return: None
         """
-        uvicorn.run(self._app, host=self._ip + ':' + self._port)
+        uvicorn.run(self._app, host=self._ip, port=self._port)
+
+
+app_instance = App()
+app = app_instance._app

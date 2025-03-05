@@ -1,33 +1,33 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, AnyStr, Optional
 from pydantic import BaseModel
-
-class QueryResultRow(BaseModel):
-    """
-    Represents a single row of query results as a dictionary-like object.
-
-    This class wraps the result of a query, allowing each row of the results
-    to be represented as a dictionary with key-value pairs where keys are
-    column names and values are corresponding data. It inherits from
-    `BaseModel`, providing all the features of Pydantic models, such as
-    data validation and processing.
-
-    :ivar __root__: Dictionary representing the row data with column names as keys
-        and corresponding values.
-    :type __root__: Dict[str, Any]
-    """
-    __root__: Dict[str, Any]
 
 class QueryResult(BaseModel):
     """
-    Represents the result of a query operation as a list of query result rows.
+    Represents the result of a query, containing a list of query result rows.
 
-    This class encapsulates the data returned by a query, structured as a list of
-    `QueryResultRow` objects. It inherits from `BaseModel` and utilizes Pydantic's
-    validation features. This allows for defining strict requirements and ensuring
-    type safety for the query results. This class makes it easier to manipulate,
-    validate, and access query results in a structured and predictable manner.
+    Provides a structure to hold the rows returned from a query execution. Each
+    row is represented as an instance of `QueryResultRow`, and all rows are
+    maintained in a list.
 
-    :ivar __root__: List containing the query result rows.
-    :type __root__: List[QueryResultRow]
+    :ivar result: A list of rows returned from the query, where each row is an
+        instance of `QueryResultRow`.
+    :type result: List[QueryResultRow]
     """
-    __root__: List[QueryResultRow]
+    result: List[Dict[AnyStr, Any]]
+
+class Query(BaseModel):
+    """
+    Represents a query model which defines the structure for data query operations.
+
+    This class is used to model a database query with attributes specifying
+    the target table and selected columns. It provides a structured way of
+    defining query parameters for data retrieval operations and is typically
+    used in conjunction with database handling modules or query builder utilities.
+
+    :ivar query_table: The name of the table to query.
+    :type query_table: AnyStr
+    :ivar query_columns: A list of column names to be retrieved from the table.
+    :type query_columns: List[AnyStr]
+    """
+    query_table: AnyStr
+    query_columns: Optional[List[AnyStr]] = None
