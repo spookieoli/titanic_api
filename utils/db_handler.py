@@ -198,7 +198,7 @@ class DBHandler:
         sql = text(f"SELECT MAX({', '.join(columns)}) FROM {table}")
         return self._execute_query(sql)
 
-    def get_mean(self, table: str, column: str) -> List:
+    def get_mean(self, table: str, columns: List[str]) -> List:
         """
         Calculate the mean value for a given column in a specific table.
 
@@ -220,9 +220,9 @@ class DBHandler:
             empty list is returned.
         :rtype: List
         """
-        if self.check_table_column_exist(table, [column]) is False:
+        if self.check_table_column_exist(table, columns) is False or len(columns) == 0 or len(columns) > 1:
             return []
-        sql = text(f"SELECT AVG({column}) FROM {table}")
+        sql = text(f"SELECT AVG({', '.join(columns)}) FROM {table}")
         return self._execute_query(sql)
 
     def get_all(self, table: str) -> List:

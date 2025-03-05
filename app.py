@@ -53,6 +53,11 @@ class App:
             logging.debug(f"Received query: {query}")
             return QueryResult(result=self._db_handler.get_min(query.query_table, query.query_columns))
 
+        @self._app.post("/avg")
+        async def get(query: Query) -> QueryResult:
+            logging.debug(f"Received query: {query}")
+            return QueryResult(result=self._db_handler.get_mean(query.query_table, query.query_columns))
+
     def run(self) -> None:
         """
         Starts the server using Uvicorn and configures it with the provided application, IP
