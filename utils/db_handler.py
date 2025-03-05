@@ -20,7 +20,7 @@ class DBHandler:
     :type _engine: sqlalchemy.engine.base.Engine
     """
 
-    def __init__(self) -> None:
+    def __init__(self, db_url: str = "sqlite:///../data/titanic.db") -> None:
         """
         Initializes the database connection and creates an engine with a connection pool.
 
@@ -30,45 +30,10 @@ class DBHandler:
 
         :raises KeyError: If the `DB_URL` environment variable is not set.
         """
-        # create instance variables
-        try:
-            db_url = os.getenv("DB_URL")
-        except KeyError:
-            raise KeyError("DB_URL environment variable is not set")
-
         # create the engine with connection pool
         self._engine = create_engine(
-            db_url,
-            pool_size=10,  # Size of the connection pool
-            max_overflow=5  # Allow up to 5 extra connections
+            db_url
         )
-
-    def get_stddev(self, table: str, columns: List) -> List:
-        """
-        Calculates the standard deviation for the specified columns in a table.
-
-        This method computes the standard deviation for the provided columns in the
-        given database table. If no columns are provided, or if the table does not
-        exist in the database, it returns an empty list. The function constructs an
-        SQL query using the provided table and column names and executes it to
-        retrieve the required statistical information.
-
-        :param table: The name of the database table to compute standard deviation.
-                      It should be a string representing a valid table name.
-        :type table: str
-        :param columns: A list of column names from the given table to compute
-                        standard deviations for. The list should contain at least one
-                        column, unless the table does not exist.
-        :type columns: List
-        :return: A list containing the standard deviation values for the specified
-                 columns. Returns an empty list if no columns are provided or the
-                 table does not exist.
-        :rtype: List
-        """
-        if len(columns) == 0 and self.check_table_column_exist(table) is False:
-            return []
-        sql = text(f"SELECT STDDEV({', '.join(columns)}) FROM {table}")
-        return self._execute_query(sql)
 
     def get_values(self, table: str, columns: List[str]) -> List:
         """
@@ -107,28 +72,23 @@ class DBHandler:
         """
         if len(columns) == 0 or self.check_table_column_exist(table, columns) is False:
             return []
-        sql = f"SELECT DISTINCT {', '.join(columns)} FROM {table}"
+        sql = text(f"SELECT DISTINCT {', '.join(columns)} FROM {table}")
         return self._execute_query(sql)
 
-    def get_table_columns(self, table: str) -> List:
+    def get_table_columns(self, tab: str) -> List:
         """
-        Retrieves the list of column names for a specified table within the database.
+        This method retrieves the names of all columns in a specified database table. It first checks if the table
+        exists and then extracts the column names using SQLAlchemy's metadata and reflection features.
 
-        This method checks if the given table exists in the database schema by
-        cross-referencing it with the list of all available tables. If the table
-        exists, it executes an SQL query to fetch all the column names associated
-        with that table. If the table does not exist, an empty list is returned.
-
-        :param table: The name of the table for which to retrieve the column names.
-        :type table: str
-        :return: A list of column names in the specified table, or an empty list if
-            the table does not exist.
-        :rtype: List
+        :param tab: The name of the table to retrieve column names for.
+        :type tab: str
+        :return: A list of column names from the specified table. If the table does not exist, an empty list is returned.
+        :rtype: List[str]
         """
-        if self.check_table_column_exist(table):
-            sql = f"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{table}'"
-            result = self._execute_query(sql)
-            return [row['COLUMN_NAME'] for row in result]
+        meta = sqlalchemy.MetaData()
+        if self.check_table_column_exist(tab):
+            table = sqlalchemy.Table(tab, meta, autoload_with=self._engine)
+            return [column.name for column in table.columns]
         return []
 
     def get_all_tables(self) -> List[str]:
@@ -165,7 +125,7 @@ class DBHandler:
         :rtype: List
         """
         if self.check_table_column_exist(table, [column]):
-            sql = f"SELECT SUM({column}) FROM {table}"
+            sql = text(f"SELECT SUM({column}) FROM {table}")
             return self._execute_query(sql)
         return []
 
@@ -213,7 +173,7 @@ class DBHandler:
         :rtype: List
         """
         if self.check_table_column_exist(table, [column]):
-            sql = f"SELECT MIN({column}) FROM {table}"
+            sql = text(f"SELECT MIN({column}) FROM {table}")
             return self._execute_query(sql)
         return []
 
@@ -238,7 +198,7 @@ class DBHandler:
         """
         if self.check_table_column_exist(table, [column]) is False:
             return []
-        sql = f"SELECT MAX({column}) FROM {table}"
+        sql = text(f"SELECT MAX({column}) FROM {table}")
         return self._execute_query(sql)
 
     def get_mean(self, table: str, column: str) -> List:
@@ -265,7 +225,7 @@ class DBHandler:
         """
         if self.check_table_column_exist(table, [column]) is False:
             return []
-        sql = f"SELECT AVG({column}) FROM {table}"
+        sql = text(f"SELECT AVG({column}) FROM {table}")
         return self._execute_query(sql)
 
     def get_all(self, table: str) -> List:
@@ -283,7 +243,7 @@ class DBHandler:
         :rtype: List
         """
         if self.check_table_column_exist(table):
-            return self._execute_query(f"SELECT * FROM {table}")
+            return self._execute_query(text(f"SELECT * FROM {table}"))
         else:
             return []
 
@@ -304,7 +264,7 @@ class DBHandler:
         """
         with self._engine.connect() as connection:
             result = connection.execute(query, parameters or {})
-            return self._get_json_list(result.fetchall())
+            return self._get_json_list(result)
 
     def check_table_column_exist(self, table: str = None, columns: [str] = None) -> bool:
         """
@@ -323,36 +283,48 @@ class DBHandler:
                  in the table schema, otherwise False.
         :rtype: bool
         """
-        if table is None or columns is None:
+        if table is None:
             return False
         if table not in self.get_all_tables():
             return False
-        for column in columns:
-            if column not in self.get_table_columns(table):
-                return False
+        if columns is not None:
+            for column in columns:
+                if column not in self.get_table_columns(table):
+                    return False
         return True
 
-    def _get_json_list(self, data: Sequence[Row]) -> List:
+    def _get_json_list(self, result: sqlalchemy.Result) -> List:
         """
-        Converts a sequence of Row objects into a list of JSON-compatible dictionaries.
+        Converts the result set of a SQL query into a list of dictionaries representing
+        each row.
 
-        This method iterates over a sequence of Row objects and converts each row into
-        a JSON-compatible dictionary format. For every row in the input sequence, all
-        column-value pairs are extracted and inserted into a dictionary, which is then
-        added to the resulting list.
+        This method transforms a SQLAlchemy Result object into a JSON-like
+        list of dictionaries, where each dictionary corresponds to a row
+        from the database query result, with column names as keys and their
+        respective values as the dictionary's values. If the provided result is
+        None, an empty list is returned.
 
-        :param data: Sequence of Row objects where each Row is treated as a collection
-                     of key-value pairs representing columns and their respective values.
-                     Each row is converted into its dictionary representation.
-        :type data: Sequence[Row]
-        :return: A list of dictionaries where each dictionary corresponds to the
-                 JSON-compatible representation of a row in the input sequence.
+        :param result: The SQLAlchemy Result object containing the query result.
+        :type result: sqlalchemy.Result
+        :return: A list of dictionaries where each dictionary corresponds to a row
+            in the result set with column names as keys and values as the row's values.
         :rtype: List
         """
+        if result is None:
+            return []
+
+        column_names = result.keys()
         json_list = []
-        for row in data:
+        rows = result.fetchall()
+
+        for row in rows:
             row_data = {}
-            for column, value in row.items():
-                row_data[column] = value
-                json_list.append(row_data)
+            for idx, column_name in enumerate(column_names):
+                row_data[column_name] = row[idx]
+            json_list.append(row_data)
         return json_list
+
+
+if __name__ == "__main__":
+    d = DBHandler()
+    print(d.get_values("Observation", ["survived", "pclass"]))
