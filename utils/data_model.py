@@ -17,18 +17,25 @@ class QueryResult(BaseModel):
 
 class Query(BaseModel):
     """
-    Represents a query model which defines the structure for data query operations.
+    Represents a query model for interacting with a database or other data sources.
 
-    This class is used to model a database query with attributes specifying
-    the target table and selected columns. It provides a structured way of
-    defining query parameters for data retrieval operations and is typically
-    used in conjunction with database handling modules or query builder utilities.
+    This class provides attributes for specifying a table, columns, and selection
+    criteria for constructing and executing queries programmatically. It is designed
+    to encapsulate query-related data and to allow validation through the BaseModel's
+    capabilities, ensuring that the query structure adheres to predefined types and
+    constraints.
 
-    :ivar query_table: The name of the table to query.
+    :ivar query_table: Name of the table to query.
     :type query_table: AnyStr
-    :ivar query_columns: A list of column names to be retrieved from the table.
-    :type query_columns: List[AnyStr]
+    :ivar query_columns: List of column names to retrieve from the table. If None,
+        all columns will be selected.
+    :type query_columns: Optional[List[AnyStr]]
+    :ivar selector: Dictionary defining selection criteria in a structured format.
+        Supports logical operators ("OR" or "AND") as keys and allows defining
+        comparison operations such as "GT", "GTE", "LT", "LTE", and "EQ".
+    :type selector: Optional[Dict[Literal["OR", "AND"], Dict[AnyStr, Dict[Literal["GT",
+        "GTE", "LT", "LTE", "EQ"], AnyStr]]]]
     """
     query_table: AnyStr
     query_columns: Optional[List[AnyStr]] = None
-    selector: Optional[Dict[AnyStr, Dict[Literal["GT", "GTE", "LT", "LTE", "EQ"], AnyStr]]] = None
+    selector: Optional[Dict[Literal["OR", "AND"], Dict[AnyStr, Dict[Literal["GT", "GTE", "LT", "LTE", "EQ"], AnyStr]]]] = None
