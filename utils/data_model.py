@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, AnyStr, Optional, Literal
+from typing import List, Dict, Any, AnyStr, Optional, Union
 from pydantic import BaseModel
 
 class QueryResult(BaseModel):
@@ -15,27 +15,86 @@ class QueryResult(BaseModel):
     """
     result: List[Dict[AnyStr, Any]]
 
+class ComparisonOperator(BaseModel):
+    """
+    Represents a set of comparison operators for evaluating conditions.
+
+    This class is used to define optional comparison operator attributes such as
+    greater than, greater than or equal, less than, less than or equal, and equal
+    to. The values of these attributes can be integers or strings. It is built
+    on top of BaseModel for validation and structure.
+
+    :ivar GT: Optional value for the 'greater than' operator.
+    :type GT: Optional[Union[int, AnyStr]]
+    :ivar GTE: Optional value for the 'greater than or equal to' operator.
+    :type GTE: Optional[Union[int, AnyStr]]
+    :ivar LT: Optional value for the 'less than' operator.
+    :type LT: Optional[Union[int, AnyStr]]
+    :ivar LTE: Optional value for the 'less than or equal to' operator.
+    :type LTE: Optional[Union[int, AnyStr]]
+    :ivar EQ: Optional value for the 'equal to' operator.
+    :type EQ: Optional[Union[int, AnyStr]]
+    """
+    GT: Optional[Union[int, AnyStr]] = None
+    GTE: Optional[Union[int, AnyStr]] = None
+    LT: Optional[Union[int, AnyStr]] = None
+    LTE: Optional[Union[int, AnyStr]] = None
+    EQ: Optional[Union[int, AnyStr]] = None
+
+
+class SelectorCondition(BaseModel):
+    """
+    Represents a condition used to evaluate a selection criterion.
+
+    This class is used to define a selection condition with a field, its
+    comparison operation, and an associated value. It is useful in cases where
+    a logical condition must be applied to data for selection or filtering. It
+    is built upon a BaseModel and supports various comparison operations.
+
+    :ivar field: The field or attribute on which the condition is applied.
+    :type field: AnyStr
+    :ivar operators: The operator used for comparison in the condition.
+    :type operators: ComparisonOperator
+    """
+    field: AnyStr
+    operators: ComparisonOperator
+
+
+class LogicalOperator(BaseModel):
+    """
+    Represents a logical operator for combining selector conditions.
+
+    This class is used to define logical operations (`OR` and `AND`)
+    to combine multiple selector conditions. It supports optional lists
+    of SelectorCondition objects for both logical operations.
+
+    :ivar OR: A list of selector conditions to be combined using the OR operator.
+    :type OR: Optional[List[SelectorCondition]]
+    :ivar AND: A list of selector conditions to be combined using the AND operator.
+    :type AND: Optional[List[SelectorCondition]]
+    """
+    OR: Optional[List[SelectorCondition]] = None
+    AND: Optional[List[SelectorCondition]] = None
+
+
 class Query(BaseModel):
     """
-    Represents a query model for interacting with a database or other data sources.
+    Represents a query configuration for a database model.
 
-    This class provides attributes for specifying a table, columns, and selection
-    criteria for constructing and executing queries programmatically. It is designed
-    to encapsulate query-related data and to allow validation through the BaseModel's
-    capabilities, ensuring that the query structure adheres to predefined types and
-    constraints.
+    This class is designed to encapsulate the details of a query operation,
+    including the target table, specific columns to retrieve, and any logical
+    filter operators. It is a part of the data modeling layer and is used to
+    facilitate structured queries.
 
-    :ivar query_table: Name of the table to query.
+    :ivar query_table: The name of the table to query.
     :type query_table: AnyStr
-    :ivar query_columns: List of column names to retrieve from the table. If None,
-        all columns will be selected.
+    :ivar query_columns: A list of column names to query from the table. If None,
+        all columns will be retrieved.
     :type query_columns: Optional[List[AnyStr]]
-    :ivar selector: Dictionary defining selection criteria in a structured format.
-        Supports logical operators ("OR" or "AND") as keys and allows defining
-        comparison operations such as "GT", "GTE", "LT", "LTE", and "EQ".
-    :type selector: Optional[Dict[Literal["OR", "AND"], Dict[AnyStr, Dict[Literal["GT",
-        "GTE", "LT", "LTE", "EQ"], AnyStr]]]]
+    :ivar selector: The logical operation or filter applied to the query. Used
+        for specifying complex conditional logic.
+    :type selector: Optional[LogicalOperator]
     """
     query_table: AnyStr
     query_columns: Optional[List[AnyStr]] = None
-    selector: Optional[Dict[Literal["OR", "AND"], Dict[AnyStr, Dict[Literal["GT", "GTE", "LT", "LTE", "EQ"], AnyStr]]]] = None
+    selector: Optional[LogicalOperator] = None
