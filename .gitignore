@@ -43,3 +43,4 @@ Thumbs.db
 
 # Other cache and temporary files
 *.cache
+/pytest.ini
