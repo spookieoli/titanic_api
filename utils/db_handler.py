@@ -1,5 +1,4 @@
 import os
-from collections.abc import dict_keys
 
 import sqlalchemy
 from sqlalchemy import create_engine, Table
@@ -35,6 +34,43 @@ class DBHandler:
             pool_size=10,  # Size of the connection pool
             max_overflow=5  # Allow up to 5 extra connections
         )
+
+    def get_distinct_values(self, table: str, columns: List) -> List:
+        """
+        Retrieves distinct values from specified columns in a database table.
+
+        This function queries the specified `table` to fetch unique combinations of
+        values across the provided `columns`. If no columns are provided, it returns
+        an empty list.
+
+        :param table: The name of the database table to query.
+        :param columns: A list of column names whose distinct values are to be fetched.
+        :return: A list of rows, each containing distinct values for the specified
+            columns.
+        :rtype: List
+        """
+        if len(columns) == 0:
+            return []
+        sql = f"SELECT DISTINCT {', '.join(columns)} FROM {table}"
+        return self._execute_query(sql)
+
+    def get_table_columns(self, table: str) -> List:
+        """
+        Retrieves a list of column names for a specified table from the database.
+
+        This function queries the database schema to fetch all column names
+        associated with the given table name. It relies on the INFORMATION_SCHEMA
+        view to extract the column metadata. The result is a list containing the
+        names of the columns.
+
+        :param table: The name of the table for which the column names are to be
+            retrieved.
+        :type table: str
+        :return: A list of column names found in the specified table.
+        :rtype: List
+        """
+        sql = f"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{table}'"
+        return self._execute_query(sql)
 
     def get_all_tables(self) -> List[str]:
         """
