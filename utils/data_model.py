@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, AnyStr, Optional
+from typing import List, Dict, Any, AnyStr, Optional, Literal
 from pydantic import BaseModel
 
 class QueryResult(BaseModel):
@@ -31,3 +31,4 @@ class Query(BaseModel):
     """
     query_table: AnyStr
     query_columns: Optional[List[AnyStr]] = None
+    selector: Optional[Dict[AnyStr, Dict[Literal["GT", "GTE", "LT", "LTE", "EQ"], AnyStr]]] = None

@@ -33,6 +33,20 @@ class App:
         self._routes()
 
     def _routes(self) -> None:
+        """
+        Defines routes and endpoint functions for handling HTTP POST requests to perform
+        various database queries. These queries include fetching all rows in a table,
+        fetching specific columns, and performing aggregate operations such as maximum,
+        minimum, and average values.
+
+        Endpoint operations are handled by methods that interact with a `_db_handler`
+        object which provides the database interface. Each endpoint receives a `Query`
+        object, performs the requested operation using the `_db_handler`, and returns a
+        `QueryResult` object containing the results of the operation.
+
+        Classes and methods defined here are used as part of an application registered
+        with `self._app`.
+        """
         @self._app.post("/getall")
         async def getall(query: Query) -> QueryResult:
             logging.debug(f"Received query: {query}")
