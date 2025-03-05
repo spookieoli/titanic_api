@@ -1,0 +1,45 @@
+
+# Python related files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.py~
+
+# Virtual Environment
+env/
+venv/
+ENV/
+VENV/
+*.env
+*.venv
+
+# Build directories
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Logs
+*.log
+*.pot
+*.pid
+
+# IDE specific files
+.idea/
+*.iml
+*.iws
+
+# System files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Other cache and temporary files
+*.cache
