@@ -6,6 +6,17 @@ from sqlalchemy import text
 
 
 class DBHandler:
+    """
+    Handles database connections and query executions.
+
+    The DBHandler class is responsible for managing database connections using
+    a connection pool and for executing SQL queries on the database. It retrieves
+    the database URL from the environment variables and utilizes SQLAlchemy for
+    setting up the connection engine and executing the queries securely.
+
+    :ivar _engine: Database engine created to manage the connection pool and execute queries.
+    :type _engine: sqlalchemy.engine.base.Engine
+    """
     def __init__(self) -> None:
 
         # create instance variables
