@@ -26,7 +26,9 @@ class App:
         self._app = fastapi.FastAPI()
 
     def _routes(self) -> None:
-        pass
+        @self._app.get("/all")
+        def get_all():
+            return 
 
     def run(self) -> None:
         """
