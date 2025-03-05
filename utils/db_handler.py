@@ -1,10 +1,11 @@
 import os
+from collections.abc import dict_keys
 
 import sqlalchemy
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, Table
 from sqlalchemy import text
 from sqlalchemy.engine.row import Row
-from typing import Sequence, List, Tuple
+from typing import Sequence, List, Tuple, Any
 
 
 class DBHandler:
@@ -35,15 +36,131 @@ class DBHandler:
             max_overflow=5  # Allow up to 5 extra connections
         )
 
-    def getall(self) -> List:
+    def get_all_tables(self) -> List[str]:
         """
-        Retrieves all the records from the database.
+        Retrieves the names of all tables in a database.
 
-        :return: The list of all records from the database.
-        :rtype: list
+        This function uses SQLAlchemy's metadata reflection capability to fetch
+        all table names from the connected database engine. It is particularly
+        useful for dynamic database introspection purposes.
+
+        :return: A list of strings, where each string is the name of a table in
+            the connected database.
+        :rtype: List[str]
         """
-        query = "SELECT * FROM records"
-        return self._execute_query(query)
+        meta = sqlalchemy.MetaData()
+        meta.reflect(bind=self._engine)
+        return list(meta.tables.keys())
+
+    def get_sum(self, table: str, column: str) -> List:
+        """
+        Calculate the sum of all values within a specified column from a given table
+        in the database by executing a SQL query. This function constructs the
+        SQL query dynamically using the provided table and column names and retrieves
+        the sum of the column values.
+
+        This method uses the `_execute_query` function to execute the query and
+        obtain the result. The returned result contains the computed sum.
+
+        :param table: Name of the table to query data from
+        :type table: str
+        :param column: Name of the column whose values will be summed
+        :type column: str
+        :return: The result of the executed query containing the computed sum of the column values
+        :rtype: List
+        """
+        sql = f"SELECT SUM({column}) FROM {table}"
+        return self._execute_query(sql)
+
+    def get_count(self, table: str, column: str = None) -> List:
+        """
+        Retrieve count of rows or column values from a database table.
+
+        This method executes an SQL query to count the number of rows in a specified
+        table or, if a column is provided, the number of values in that column. If no
+        specific column is given, it counts all rows in the table.
+
+        :param table: Name of the database table from which the count is to be retrieved.
+        :type table: str
+        :param column: Optional name of the table column to count values for. If not
+            provided, rows in the table are counted.
+        :type column: str, optional
+        :return: Result of the query containing the count of the rows or column values.
+        :rtype: List
+        """
+        if column is None:
+            sql = f"SELECT COUNT(*) FROM {table}"
+        else:
+            sql = f"SELECT COUNT({column}) FROM {table}"
+        return self._execute_query(sql)
+
+    def get_min(self, table: str, column: str) -> List:
+        """
+        Retrieve the minimum value from the specified column in the given table.
+
+        This function constructs a SQL query to obtain the smallest value
+        from the provided column within the specified table. It then executes
+        the query utilizing the `_execute_query` method and returns the result.
+
+        :param table: The name of the table from which to fetch the minimum value.
+        :type table: str
+        :param column: The name of the column to retrieve the minimum value from.
+        :type column: str
+        :return: A list containing the result of the query execution, which includes
+                 the minimum value of the specified column.
+        :rtype: List
+        """
+        sql = f"SELECT MIN({column}) FROM {table}"
+        return self._execute_query(sql)
+
+    def get_max(self, table: str, column: str) -> List:
+        """
+        Fetches the maximum value of a given column from a specified database table.
+
+        This method executes a SQL query to find and return the maximum value within
+        a specified column of a table in the database. The method relies on an
+        internal `_execute_query` function for executing the constructed SQL query.
+
+        :param table: The name of the table to be queried.
+        :param column: The name of the column from which the maximum value is to be retrieved.
+        :return: A list containing the maximum value retrieved from the specified column.
+        :rtype: List
+        """
+        sql = f"SELECT MAX({column}) FROM {table}"
+        return self._execute_query(sql)
+
+    def get_mean(self, table: str, column: str) -> List:
+        """
+        Calculate the mean (average) value of a specified column in a given database
+        table. This function constructs a SQL query to retrieve the mean from the
+        column of interest and executes it using the internal query execution
+        mechanism.
+
+        :param table: The name of the database table where the column exists.
+        :param column: The name of the column for which the mean value is to be
+            calculated.
+        :return: A list containing the result of the mean value calculation.
+        :rtype: List
+        """
+        sql = f"SELECT AVG({column}) FROM {table}"
+        return self._execute_query(sql)
+
+    def get_all(self, table: str) -> List:
+        """
+        Retrieves all records from the specified database table.
+
+        This method constructs an SQL query to fetch all rows from the
+        given table and executes it using the `_execute_query` method. The
+        result is returned as a list.
+
+        :param table: The name of the table from which to retrieve all records.
+        :type table: str
+
+        :return: A list of all records retrieved from the table.
+        :rtype: List
+        """
+        sql = f"SELECT * FROM {table}"
+        return self._execute_query(sql)
 
     def _execute_query(self, query: str) -> List:
         """
@@ -51,7 +168,7 @@ class DBHandler:
         in a JSON-compatible list format. This method establishes a connection
         to the database, executes the provided query string, fetches all the
         results, and processes them into a convenient JSON-compatible data
-        structure.
+        structure by calling the `_get_json_list` method.
 
         :param query: The SQL query string to be executed.
         :type query: str
