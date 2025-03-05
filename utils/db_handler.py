@@ -5,6 +5,10 @@ from sqlalchemy import create_engine, Table
 from sqlalchemy import text
 from sqlalchemy.engine.row import Row
 from typing import Sequence, List, Tuple, Any
+import logging
+
+# create logging
+logging.basicConfig(filename='app.log', level=logging.DEBUG)
 
 
 class DBHandler:
@@ -259,9 +263,14 @@ class DBHandler:
         :return: A list of results formatted as JSON-compatible dictionaries.
         :rtype: List
         """
-        with self._engine.connect() as connection:
-            result = connection.execute(query, parameters or {})
-            return self._get_json_list(result)
+
+        try:
+            with self._engine.connect() as connection:
+                result = connection.execute(query, parameters or {})
+                return self._get_json_list(result)
+        except Exception as e:
+            logging.error(f"Error executing query: {e}")
+            return []
 
     def check_table_column_exist(self, table: str = None, columns: [str] = None) -> bool:
         """
@@ -320,4 +329,3 @@ class DBHandler:
                 row_data[column_name] = row[idx]
             json_list.append(row_data)
         return json_list
-
