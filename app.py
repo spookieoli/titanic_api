@@ -2,12 +2,13 @@ import fastapi
 import uvicorn
 
 from utils.auth_handler import AuthHandler
-from utils.data_model import Query, QueryResult
+from utils.data_model import Query, QueryResult, QueryResultTC
 from utils.db_handler import DBHandler
 import logging
 
 # create logging
 logging.basicConfig(filename='app.log', level=logging.DEBUG)
+
 
 class App:
     """
@@ -50,6 +51,7 @@ class App:
         Classes and methods defined here are used as part of an application registered
         with `self._app`.
         """
+
         @self._app.post("/getall")
         async def getall(query: Query) -> QueryResult:
             if self._auth_handler.authenticate(query.api_key):
@@ -62,7 +64,8 @@ class App:
         async def get(query: Query) -> QueryResult:
             if self._auth_handler.authenticate(query.api_key):
                 logging.debug(f"Received query: {query}")
-                return QueryResult(result=self._db_handler.get_values(query.query_table, query.query_columns, query.selector))
+                return QueryResult(
+                    result=self._db_handler.get_values(query.query_table, query.query_columns, query.selector))
             else:
                 raise fastapi.HTTPException(status_code=401, detail="Invalid API key")
 
@@ -70,7 +73,8 @@ class App:
         async def get(query: Query) -> QueryResult:
             if self._auth_handler.authenticate(query.api_key):
                 logging.debug(f"Received query: {query}")
-                return QueryResult(result=self._db_handler.get_max(query.query_table, query.query_columns, query.selector))
+                return QueryResult(
+                    result=self._db_handler.get_max(query.query_table, query.query_columns, query.selector))
             else:
                 raise fastapi.HTTPException(status_code=401, detail="Invalid API key")
 
@@ -78,7 +82,8 @@ class App:
         async def get(query: Query) -> QueryResult:
             if self._auth_handler.authenticate(query.api_key):
                 logging.debug(f"Received query: {query}")
-                return QueryResult(result=self._db_handler.get_min(query.query_table, query.query_columns , query.selector))
+                return QueryResult(
+                    result=self._db_handler.get_min(query.query_table, query.query_columns, query.selector))
             else:
                 raise fastapi.HTTPException(status_code=401, detail="Invalid API key")
 
@@ -86,7 +91,24 @@ class App:
         async def get(query: Query) -> QueryResult:
             if self._auth_handler.authenticate(query.api_key):
                 logging.debug(f"Received query: {query}")
-                return QueryResult(result=self._db_handler.get_mean(query.query_table, query.query_columns, query.selector))
+                return QueryResult(
+                    result=self._db_handler.get_mean(query.query_table, query.query_columns, query.selector))
+            else:
+                raise fastapi.HTTPException(status_code=401, detail="Invalid API key")
+
+        @self._app.post("/alltables")
+        async def get(query: Query) -> QueryResultTC:
+            if self._auth_handler.authenticate(query.api_key):
+                logging.debug(f"Received query: {query}")
+                return QueryResultTC(result=self._db_handler.get_all_tables())
+            else:
+                raise fastapi.HTTPException(status_code=401, detail="Invalid API key")
+
+        @self._app.post("/allcolumns")
+        async def get(query: Query) -> QueryResultTC:
+            if self._auth_handler.authenticate(query.api_key):
+                logging.debug(f"Received query: {query}")
+                return QueryResultTC(result=self._db_handler.get_table_columns(query.query_table))
             else:
                 raise fastapi.HTTPException(status_code=401, detail="Invalid API key")
 

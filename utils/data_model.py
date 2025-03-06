@@ -17,6 +17,22 @@ class QueryResult(BaseModel):
     """
     result: List[Dict[AnyStr, Any]]
 
+class QueryResultTC(BaseModel):
+    """
+    Represents the result of a query execution.
+
+    This class encapsulates the structure and data resulting from a query operation. It provides
+    a list of dictionaries where each dictionary corresponds to a single result row, containing
+    key-value pairs for column names and their respective values. It is typically used for handling
+    query results in a structured way which models a tabular response.
+
+    :ivar result: List of dictionaries containing query result rows. Each dictionary represents a
+        single row with key-value pairs corresponding to column names and their respective values.
+    :type result: List[Dict[AnyStr, Any]]
+    """
+    result: List[AnyStr]
+
+
 
 class Statement(BaseModel):
     """
@@ -80,6 +96,6 @@ class Query(BaseModel):
     :type selector: Optional[Operator]
     """
     api_key: AnyStr
-    query_table: AnyStr
+    query_table: Optional[AnyStr] = None
     query_columns: Optional[List[AnyStr]] = None
     selector: Optional[Union[Operator, Statement]] = None
