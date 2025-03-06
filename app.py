@@ -52,7 +52,7 @@ class App:
             logging.debug(f"Received query: {query}")
             return QueryResult(result=self._db_handler.get_all(query.query_table, query.selector))
 
-        @self._app.post("/getallcolumns")
+        @self._app.post("/getallwcolumns")
         async def get(query: Query) -> QueryResult:
             logging.debug(f"Received query: {query}")
             return QueryResult(result=self._db_handler.get_values(query.query_table, query.query_columns, query.selector))
