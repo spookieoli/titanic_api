@@ -79,6 +79,3 @@ class Query(BaseModel):
     query_table: AnyStr
     query_columns: Optional[List[AnyStr]] = None
     selector: Operator
-
-
-
