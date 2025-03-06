@@ -79,6 +79,7 @@ class Query(BaseModel):
                     `OR`, etc. If None, no filtering is applied.
     :type selector: Optional[Operator]
     """
+    api_key: AnyStr
     query_table: AnyStr
     query_columns: Optional[List[AnyStr]] = None
     selector: Optional[Union[Operator, Statement]] = None

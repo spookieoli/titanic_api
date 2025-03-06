@@ -27,6 +27,21 @@ class DBHandler:
     :type _engine: sqlalchemy.engine.base.Engine
     """
 
+    def __init__(self, db_url: str = "sqlite:///./data/titanic.db") -> None:
+        """
+        Initializes the database connection and creates an engine with a connection pool.
+
+        This constructor retrieves the database URL from the environment variables, sets
+        up a SQLAlchemy database engine with a specified connection pool size, and configures
+        extra overflow connections. It ensures robust management of database connections.
+
+        :raises KeyError: If the `DB_URL` environment variable is not set.
+        """
+        # create the engine with connection pool
+        self._engine = create_engine(
+            db_url
+        )
+
     def check_parameter(self, table: str, parameter: Operator) -> Tuple[bool, str, dict]:
         """
         Validates the provided parameter for a given table and generates a corresponding SQL query.
@@ -49,21 +64,6 @@ class DBHandler:
                 return True, query, parameters
         else:
             return True, "", {}
-
-    def __init__(self, db_url: str = "sqlite:///./data/titanic.db") -> None:
-        """
-        Initializes the database connection and creates an engine with a connection pool.
-
-        This constructor retrieves the database URL from the environment variables, sets
-        up a SQLAlchemy database engine with a specified connection pool size, and configures
-        extra overflow connections. It ensures robust management of database connections.
-
-        :raises KeyError: If the `DB_URL` environment variable is not set.
-        """
-        # create the engine with connection pool
-        self._engine = create_engine(
-            db_url
-        )
 
     def get_values(self, table: str, columns: List[str], parameter: Operator) -> List:
         """
