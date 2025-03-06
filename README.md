@@ -10,6 +10,7 @@ Welcome to the **Titanic API** repository! This project is designed to powerfull
 - **Dynamic Routing**: A dedicated `_routes` method allows seamless definition and management of RESTful endpoints.
 - **Integrated Database & Authentication**: Built-in attributes `_db_handler` and `_auth_handler` provide essential tools for database interactions and authentication handling.
 - **Network Configurability**: Easily define the API's host `IP` and `port` as part of its configuration.
+- **Mango Like Query Language** Filter your Data with an easy to learn Mangolike Querylanuage
 
 ## Class Design
 
