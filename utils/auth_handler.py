@@ -3,48 +3,49 @@ from utils.db_handler import DBHandler
 
 class AuthHandler:
     """
-    Provides authentication management.
+    Represents a class responsible for managing a database handler and storing an API key.
 
-    The AuthHandler class is responsible for managing the authentication
-    process by validating against a pre-defined API key. It interacts
-    with the provided database handler for additional functionality if
-    required.
+    This class is designed to initialize and hold a reference to a database
+    handler (`DBHandler`) object and store an API key as a string. The API key
+    is instantiated with a default value.
 
-    THIS IS FOR TESTING PURPOSES ONLY.
-
-    :ivar api_key: The API key used for authentication purposes.
-    :type api_key: str
+    :ivar _db_handler: Holds the reference to the passed `DBHandler` instance.
+    :vartype _db_handler: DBHandler
+    :ivar _api_key: Stores the default API key required for API operations.
+    :vartype _api_key: str
     """
     def __init__(self):
         """
-        Represents a class responsible for managing a database handler and storing an API key.
+        Initializes an object of the class for managing database connections and fetching
+        API keys from a specific SQLite database.
 
-        This class is designed to initialize and hold a reference to a database
-        handler (`DBHandler`) object and store an API key as a string. The API key
-        is instantiated with a default value.
+        The initializer sets up a database handler for interacting with the SQLite database
+        and retrieves the API key from a given stored table and parameters.
 
-        :param db_handler: The database handler instance responsible for managing
-            database operations.
-        :type db_handler: DBHandler
-        :ivar _db_handler: Holds the reference to the passed `DBHandler` instance.
-        :vartype _db_handler: DBHandler
-        :ivar api_key: Stores the default API key required for API operations.
-        :vartype api_key: str
+        Attributes:
+            _db_handler (DBHandler): An instance of DBHandler configured to connect to
+            the SQLite database at "sqlite:///./data/auth.db".
+
+            _api_key (str): API key retrieved from the "auth" table in the SQLite database.
+
+        Raises:
+            Any error raised by DBHandler or unexpected absence of data in the database query.
+
         """
         self._db_handler = DBHandler("sqlite:///./data/auth.db")
         self._api_key = self._db_handler.get_all("auth", None)[0]["apikey"]
 
     def authenticate(self, api_key: str) -> bool:
         """
-        Authenticate the provided API key against the stored API key.
+        Authenticates a user by comparing the provided API key with the stored API key.
 
-        This method validates if the given API key matches the stored
-        API key for access authentication.
+        This method checks whether the given API key matches the internally stored
+        private API key, ensuring secure access to restricted functionalities.
 
-        :param api_key: A string representing the API key to be authenticated.
+        :param api_key: The API key provided by the user for authentication.
         :type api_key: str
-        :return: A boolean value where True indicates a successful authentication
-                 and False indicates failure.
+
+        :return: True if the API key matches the stored key, otherwise False.
         :rtype: bool
         """
         if api_key == self._api_key:
