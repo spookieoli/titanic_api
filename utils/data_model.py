@@ -81,4 +81,4 @@ class Query(BaseModel):
     """
     query_table: AnyStr
     query_columns: Optional[List[AnyStr]] = None
-    selector: Optional[Operator]
+    selector: Optional[Operator] = None
