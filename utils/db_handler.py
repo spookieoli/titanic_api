@@ -6,6 +6,9 @@ from sqlalchemy import text
 from sqlalchemy.engine.row import Row
 from typing import Sequence, List, Tuple, Any
 import logging
+from utils.query_to_sql import QueryToSQL
+
+from utils.data_model import Operator
 
 # create logging
 logging.basicConfig(filename='app.log', level=logging.DEBUG)
@@ -24,6 +27,29 @@ class DBHandler:
     :type _engine: sqlalchemy.engine.base.Engine
     """
 
+    def check_parameter(self, table: str, parameter: Operator) -> Tuple[bool, str, dict]:
+        """
+        Validates the provided parameter for a given table and generates a corresponding SQL query.
+        This function checks whether all fields required by the parameter exist within the specified table.
+
+        :param table: The name of the table to be queried. Must be provided as a string.
+        :param parameter: An operator object containing details of the query parameter. If no parameter
+            is provided (None), the function defaults to returning True with an empty query string.
+        :return: A tuple containing a boolean and a string. The boolean indicates whether the parameter
+            validation and table-field existence checks succeeded. The string represents the corresponding
+            SQL query, if applicable. Returns an empty query when validation fails or parameter is None.
+        """
+        if parameter is not None:
+            q = QueryToSQL()
+            query, parameters = q.query_selector_to_sql(parameter.model_dump())
+            v = q.get_fields()
+            if self.check_table_column_exist(table, v) is False:
+                return False, "", {}
+            else:
+                return True, query, parameters
+        else:
+            return True, "", {}
+
     def __init__(self, db_url: str = "sqlite:///./data/titanic.db") -> None:
         """
         Initializes the database connection and creates an engine with a connection pool.
@@ -39,45 +65,81 @@ class DBHandler:
             db_url
         )
 
-    def get_values(self, table: str, columns: List[str]) -> List:
+    def get_values(self, table: str, columns: List[str], parameter: Operator) -> List:
         """
-        Retrieves specific values from a database table based on the provided column names.
-        If the given column list is empty or the columns do not exist in the specified table,
-        an empty list is returned.
+        Retrieve specific column values from a database table based on the provided parameters.
 
-        :param table: The name of the table to query.
+        This method performs a query on the given database table to fetch specific column values. If a parameter
+        is provided, it will be used to create a WHERE clause to filter the results. If no columns are provided
+        or the specified columns or table do not exist, it will return an empty list.
+
+        :param table: The name of the database table to query.
         :type table: str
-        :param columns: A list of column names to retrieve from the table.
+        :param columns: A list of column names to return values for. If empty or non-existent in the table,
+            returns an empty list.
         :type columns: List[str]
-        :return: A list containing the retrieved values from the specified table and columns.
+        :param parameter: An operator object used to construct a conditional clause for filtering results.
+            Can be None for unconditional queries.
+        :type parameter: Operator
+        :return: A list of rows containing the values for the specified columns or an empty list if no data
+            is found or the query is invalid.
         :rtype: List
         """
-        if len(columns) == 0 or self.check_table_column_exist(table, columns) is False:
+
+        # create statement from Operator if present
+        exists, query, parameters = self.check_parameter(table, parameter)
+
+        if exists is False:
             return []
-        sql = text(f"SELECT {', '.join(columns)} FROM {table}")
-        return self._execute_query(sql)
 
-    def get_distinct_values(self, table: str, columns: List) -> List:
+        if len(columns) == 0 or self.check_table_column_exist(table, columns) is False and exists is False:
+            return []
+        if query == "":
+            sql = text(f"SELECT {', '.join(columns)} FROM {table}")
+            return self._execute_query(sql)
+        else:
+            sql = text(f"SELECT {', '.join(columns)} FROM {table} WHERE {query}")
+            return self._execute_query(sql, parameters)
+
+    def get_distinct_values(self, table: str, columns: List, parameter: Operator) -> List:
         """
-        Fetches distinct values for specified columns from a given database table.
+        Retrieve distinct values from a specified table and columns, optionally filtered by a condition.
+        This method queries a database table to fetch unique records from specified columns. If a condition
+        is provided through the `parameter` argument, it filters the data based on the constructed query
+        from its value.
 
-        This method queries the database to retrieve all unique value combinations
-        of the specified columns from the given table. If no columns are provided
-        or if the table or columns do not exist, the method returns an empty list.
-
-        :param table: Name of the database table to query.
+        :param table:
+            The name of the database table from which to retrieve the data.
         :type table: str
-        :param columns: List of column names in the table whose distinct values
-            are to be retrieved.
+
+        :param columns:
+            A list of column names in the table to return distinct values from.
         :type columns: List
-        :return: A list containing rows of distinct values for the specified
-            columns, where each row is represented as a list.
+
+        :param parameter:
+            An optional parameter used to construct a filtering query based on an operator. This can
+            be used to apply conditions to the data retrieval process.
+        :type parameter: Operator
+
+        :return:
+            A list containing distinct values from the specified columns, optionally filtered by the
+            provided parameter. If columns or parameters are invalid, an empty list is returned.
         :rtype: List
         """
-        if len(columns) == 0 or self.check_table_column_exist(table, columns) is False:
+        # create statement from Operator if present
+        exists, query, parameters = self.check_parameter(table, parameter)
+
+        if exists is False:
             return []
-        sql = text(f"SELECT DISTINCT {', '.join(columns)} FROM {table}")
-        return self._execute_query(sql)
+
+        if len(columns) == 0 or self.check_table_column_exist(table, columns) is False and exists is False:
+            return []
+        if query == "":
+            sql = text(f"SELECT DISTINCT {', '.join(columns)} FROM {table}")
+            return self._execute_query(sql)
+        else:
+            sql = text(f"SELECT DISTINCT {', '.join(columns)} FROM {table} WHERE {query}")
+            return self._execute_query(sql, parameters)
 
     def get_table_columns(self, tab: str) -> List:
         """
@@ -111,140 +173,216 @@ class DBHandler:
         meta.reflect(bind=self._engine)
         return list(meta.tables.keys())
 
-    def get_sum(self, table: str, column: str) -> List:
+    def get_sum(self, table: str, column: str, parameter: Operator) -> List:
         """
-        Gets the sum of the values in a specified column within a table if the column exists
-        in the provided table.
+        Calculates the sum of the values in a specified column of a given table. If a specific
+        condition is provided via an Operator parameter, it applies the condition as a filter
+        before performing the summation. This method returns a list containing the result of
+        the executed query.
 
-        This method first validates if the specified column exists in the table by checking
-        against the table's columns. If the column exists, it constructs an SQL query to
-        calculate the sum of the column's values. Otherwise, it returns an empty list.
-
-        :param table: The name of the database table.
+        :param table: The name of the database table to query.
         :type table: str
-        :param column: The name of the column whose values need to be summed.
+        :param column: The name of the column from which the sum is calculated.
         :type column: str
-        :return: A list containing the sum of the column's values if the column exists;
-            otherwise, an empty list.
+        :param parameter: An Operator instance representing the condition to filter the rows.
+        :type parameter: Operator
+        :return: A list containing the result of the summation query. Could be empty if the
+            table or column does not exist, or if no rows match the given condition.
         :rtype: List
         """
-        if self.check_table_column_exist(table, [column]):
+        # create statement from Operator if present
+        exists, query, parameters = self.check_parameter(table, parameter)
+
+        if exists is False:
+            return []
+
+        if self.check_table_column_exist(table, [column]) is False and exists is False:
+            return []
+
+        if query == "":
             sql = text(f"SELECT SUM({column}) FROM {table}")
             return self._execute_query(sql)
-        return []
+        else:
+            sql = text(f"SELECT SUM({column}) FROM {table} WHERE {query}")
+            return self._execute_query(sql, parameters)
 
-    def get_count(self, table: str, column: str = None) -> List:
+    def get_count(self, table: str, column: str, parameter: Operator) -> List:
         """
-        Generates and executes a SQL query to count rows in a given database table. If a
-        column is specified, it counts non-NULL values in that column. Returns the query
-        result as a list. If the table or column does not exist, an empty list is returned.
+        Retrieves the count of rows in a database table, optionally filtered by a
+        specific condition or using a specific column.
 
-        :param table: Name of the database table to count rows from.
-        :type table: str
-        :param column: Name of the column to count non-NULL values from, defaults to None.
-        :type column: str, optional
-        :return: List containing query result or an empty list if conditions are not met.
+        This method constructs an SQL query to count rows in a table based on the
+        provided parameters. If a column is specified, it counts values in that
+        column; otherwise, it counts rows in general. Query filtering can also
+        be applied if an operator is provided.
+
+        :param table: The name of the database table to query.
+        :param column: The column to be counted from the specified table. If None, the
+            method counts rows in the table.
+        :param parameter: The operator used to define a filtering condition for the
+            query. May be None if no filtering is required.
+        :return: A list of results from the executed SQL query, typically containing
+            the count as a single value.
         :rtype: List
         """
+
+        # create statement from Operator if present
+        exists, query, parameters = self.check_parameter(table, parameter)
+
+        if exists is False:
+            return []
+
         sql = ""
-        if column is None and table in self.get_all_tables():
+        if column is None and table in self.get_all_tables() and query == "":
             sql = text(f"SELECT COUNT(*) FROM {table}")
             return self._execute_query(sql)
+        elif column is None and table in self.get_all_tables() and query != "":
+            sql = text(f"SELECT COUNT(*) FROM {table} WHERE {query}")
+            return self._execute_query(sql, parameters)
         elif column is not None and column in self.get_table_columns(table) and table in self.get_all_tables():
             sql = text(f"SELECT COUNT({column}) FROM {table}")
             return self._execute_query(sql)
+        elif column is not None and column in self.get_table_columns(
+                table) and table in self.get_all_tables() and query != "":
+            sql = text(f"SELECT COUNT({column}) FROM {table} WHERE {query}")
+            return self._execute_query(sql, parameters)
         else:
             return []
 
-    def get_min(self, table: str, columns: List[str]) -> List:
+    def get_min(self, table: str, columns: List[str], parameter: Operator) -> List:
         """
-        Get the minimum values of the specified columns from a given database table.
+        Retrieve the minimum value(s) of specified column(s) from a database table while considering optional filtering
+        conditions. This method generates an SQL query with optional filters provided through the `Operator` parameter
+        and executes it against the connected database. If no valid table or columns are provided, an empty list is
+        returned. The query evaluates specified columns and supports conditional filters if a valid `Operator` instance
+        is passed.
 
-        This method checks if the given table and columns exist in the database
-        before executing the query. If the columns and table are valid, it retrieves
-        the minimum values for the specified columns from the table. If the table or
-        columns are invalid, it returns an empty list without executing the query.
-
-        :param table: Name of the table in the database.
+        :param table: The name of the database table from which to query.
         :type table: str
-        :param columns: List of column names for which the minimum values are to
-            be retrieved.
-        :type columns: List[str]
-        :return: A list containing the minimum values for the specified columns if
-            valid; otherwise, an empty list.
-        :rtype: List
+        :param columns: A list of column names whose minimum values should be retrieved.
+        :type columns: list of str
+        :param parameter: An `Operator` instance specifying optional filter criteria for the query.
+        :type parameter: Operator
+        :return: A list containing the result(s) from the executed query, or an empty list if table or column validation fails.
+        :rtype: list
         """
-        if self.check_table_column_exist(table, columns):
+
+        # create statement from Operator if present
+        exists, query, parameters = self.check_parameter(table, parameter)
+
+        if exists is False:
+            return []
+
+        if self.check_table_column_exist(table, columns) and query == "":
             sql = text(f"SELECT MIN({', '.join(columns)}) FROM {table}")
             return self._execute_query(sql)
+        elif self.check_table_column_exist(table, columns) and query != "":
+            sql = text(f"SELECT MIN({', '.join(columns)}) FROM {table} WHERE {query}")
+            return self._execute_query(sql, parameters)
         return []
 
-    def get_max(self, table: str, columns: List[str]) -> List:
+    def get_max(self, table: str, columns: List[str], parameter: Operator) -> List:
         """
-        Retrieves the maximum values for specified columns from a given table.
+        Retrieve the maximum value(s) of specified columns in a given database table, filtered
+        by an optional condition provided through an Operator.
 
-        The method checks if the specified table and columns exist before executing
-        an SQL query to fetch the maximum values for the given columns from the table.
-        If the table or columns do not exist, it returns an empty list.
+        This method fetches the maximum value(s) from one or more specified columns in the
+        provided table. If an optional filtering condition is specified through the provided
+        Operator instance, it will apply the condition to the query. If the condition is invalid
+        or the columns do not exist in the table, an empty list is returned.
 
-        :param table: The name of the table from which the maximum values should
-                      be retrieved.
-        :param columns: A list of column names to fetch their maximum values
-                        from the specified table.
+        :param table: The name of the database table to query.
         :type table: str
+        :param columns: List of column names for which maximum values need to be retrieved.
         :type columns: List[str]
-        :return: A list containing the maximum values from the specified columns.
-                 If the table or columns do not exist, an empty list is returned.
+        :param parameter: An optional Operator instance that specifies a condition to apply to the query.
+        :type parameter: Operator
+        :return: A list containing the maximum value(s) from the specified columns. Returns an empty list
+                 if the table, columns, or query condition are invalid.
         :rtype: List
         """
-        if self.check_table_column_exist(table, columns) is False:
+
+        # create statement from Operator if present
+        exists, query, parameters = self.check_parameter(table, parameter)
+
+        if exists is False:
             return []
-        sql = text(f"SELECT MAX({', '.join(columns)}) FROM {table}")
-        return self._execute_query(sql)
 
-    def get_mean(self, table: str, columns: List[str]) -> List:
+        if self.check_table_column_exist(table, columns) and query == "":
+            sql = text(f"SELECT MAX({', '.join(columns)}) FROM {table}")
+            return self._execute_query(sql)
+        elif self.check_table_column_exist(table, columns) and query != "":
+            sql = text(f"SELECT MAX({', '.join(columns)}) FROM {table} WHERE {query}")
+            return self._execute_query(sql, parameters)
+        return []
+
+    def get_mean(self, table: str, columns: List[str], parameter: Operator) -> List:
         """
-        Calculate the mean value for a given column in a specific table.
+        Calculate the mean of specified columns in a database table optionally constrained by
+        a parameter.
 
-        This method checks whether the specified column exists within the given
-        table and if the given table exists in the database. If either is not
-        present, an empty list is returned. Otherwise, it performs an SQL query
-        to calculate the average value of the specified column.
+        This method retrieves the average (mean) value of the given column(s) from the specified
+        database table. It allows filtering the data using an optional parameter, encapsulated
+        within an `Operator` type. The function ensures the table and columns exist before
+        executing the query. If a parameter is specified, it appends the relevant WHERE clause
+        to the query.
 
-        :param table:
-            The name of the table in the database from which the mean value
-            of the column will be calculated.
+        :param table: The name of the database table to query.
         :type table: str
-        :param column:
-            The name of the column within the table to calculate the mean value.
-        :type column: str
-        :return:
-            A list which contains the result of the SQL query for the mean value
-            of the specified column. If the table or column does not exist, an
-            empty list is returned.
+        :param columns: A list of column names whose averages are to be computed.
+        :type columns: List[str]
+        :param parameter: Optional parameter defining constraints for the query.
+        :type parameter: Operator
+        :return: A list containing the computed average values, or an empty list if the
+            table/columns do not exist, or no results match the query.
         :rtype: List
         """
-        if self.check_table_column_exist(table, columns) is False or len(columns) == 0 or len(columns) > 1:
+        # create statement from Operator if present
+        exists, query, parameters = self.check_parameter(table, parameter)
+
+        if exists is False:
             return []
-        sql = text(f"SELECT AVG({', '.join(columns)}) FROM {table}")
-        return self._execute_query(sql)
 
-    def get_all(self, table: str) -> List:
+        if self.check_table_column_exist(table, columns) and query == "":
+            sql = text(f"SELECT AVG({', '.join(columns)}) FROM {table}")
+            return self._execute_query(sql)
+        elif self.check_table_column_exist(table, columns) and query != "":
+            sql = text(f"SELECT AVG({', '.join(columns)}) FROM {table} WHERE {query}")
+            return self._execute_query(sql, parameters)
+        return []
+
+    def get_all(self, table: str, parameter: Operator) -> List:
         """
-        Retrieves all records from the specified database table.
+        Retrieves all records from a specified table that satisfy the specified condition.
 
-        This method constructs an SQL query to fetch all rows from the
-        given table and executes it using the `_execute_query` method. The
-        result is returned as a list.
+        This method interacts with a database to fetch records. It first checks
+        if the condition provided as an `Operator` object is applicable. If the
+        condition exists, it prepares a query and fetches the data from the table.
+        Only records from the existing table and columns will be retrieved based on
+        the query condition.
 
-        :param table: The name of the table from which to retrieve all records.
+        :param table: The name of the database table from which records need to be
+            retrieved.
         :type table: str
-
-        :return: A list of all records retrieved from the table.
+        :param parameter: An instance of `Operator` representing the condition to
+            apply on table data, used to form the query.
+        :type parameter: Operator
+        :return: A list of records retrieved from the specified table that satisfy
+            the condition, or an empty list if no records satisfy the condition or
+            the table/columns do not exist.
         :rtype: List
         """
+
+        # create statement from Operator if present
+        exists, query, parameters = self.check_parameter(table, parameter)
+
+        if exists is False:
+            return []
+
         if self.check_table_column_exist(table):
             return self._execute_query(text(f"SELECT * FROM {table}"))
+        elif self.check_table_column_exist(table) and query != "":
+            return self._execute_query(text(f"SELECT * FROM {table} WHERE {query}"), parameters)
         else:
             return []
 
