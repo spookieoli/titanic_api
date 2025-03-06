@@ -1,4 +1,5 @@
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, Set
+
 
 class QueryToSQL:
     """
@@ -14,6 +15,10 @@ class QueryToSQL:
         equivalents.
     :type supported_operators: Dict[str, str]
     """
+
+    def __init__(self):
+        self._fields: Set[str] = set()
+
     def convert_operator(self, statement: Dict[str, Dict[str, Any]]) -> str:
         """
         Converts a dictionary-based query operator structure into an SQL expression string.
@@ -32,6 +37,7 @@ class QueryToSQL:
         """
         sql_parts = []
         for field, conditions in statement.items():
+            self._fields.add(field)
             for operator, value in conditions.items():
                 if operator == "$eq":
                     sql_parts.append(f"{field} = '{value}'")
@@ -78,3 +84,12 @@ class QueryToSQL:
                 elif key == "$or":
                     return " OR ".join(sql_conditions)
         return ""
+
+    def get_fields(self) -> List[str]:
+        """
+        Provides functionality to retrieve fields stored in the class instance.
+
+        :return: A list of strings containing field names stored in the class.
+        :rtype: List[str]
+        """
+        return list(self._fields)

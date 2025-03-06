@@ -120,6 +120,7 @@ def test_nested_conditions():
     }
     expected_sql = "((age >= 18) OR (membership = 'premium')) AND (country = 'Germany')"
     assert converter.query_selector_to_sql(selector) == expected_sql
+    assert converter.get_fields() == ['membership', 'age', 'country']
 
 def test_empty_selector():
     """
