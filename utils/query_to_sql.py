@@ -3,17 +3,16 @@ from typing import Dict, Any, List, Union, Set, Tuple
 
 class QueryToSQL:
     """
-    Transforms structured, dictionary-like query representations into SQL-compatible
-    language while keeping track of fields and safely binding parameters. The primary
-    use case is to bridge the gap between a structured query language and SQL, enabling
-    safe and dynamic query building.
+    Handles the conversion of MongoDB-like query selectors and statements into
+    SQL WHERE condition expressions and associated parameters. The purpose is to
+    bridge Mongo-like conditional queries to SQL-compatible formats, ensuring
+    precision and consistency with mapping.
 
-    The class provides methods to convert individual operators, nested selectors, and
-    logical conditions into SQL expressions. Fields referenced during the conversion
-    are collected and can be retrieved for further operations.
+    This utility can be used for query transformations where SQL databases are
+    employed, and Mongo-like query syntax is desired for the application layer.
 
-    :ivar _fields: Set of field names that have been used in the conversion processes.
-    :type _fields: set
+    :ivar _fields: Set containing fields processed in the query statements.
+    :type _fields: Set[str]
     """
 
     def __init__(self):
@@ -21,34 +20,18 @@ class QueryToSQL:
 
     def convert_operator(self, statement: Dict[str, Dict[str, Any]]) -> Tuple[str, Dict[str, Any]]:
         """
-        Converts a MongoDB-like query statement with operators into an SQL-like
-        query string and a corresponding dictionary of parameters. The mapping
-        between operators and their SQL equivalents is precise and strictly adheres
-        to supported operations. The function handles equality, inequality, less than,
-        less than or equal, greater than, and greater than or equal conditions.
+        Converts a dictionary of field conditions into an SQL query and a dictionary
+        of parameters for use in that query. The method processes logical operators
+        and generates corresponding SQL fragments.
 
-        During conversion:
-        - Field names are used to generate SQL-compliant query parts.
-        - Parameters are derived from field values in the query, ensuring they
-          are safe and valid for SQL parameterized statements.
+        :param statement: A dictionary where keys are field names and values are
+            dictionaries mapping operators (e.g., $eq, $lt) to their associated
+            values.
 
-        :param statement:
-            A dictionary where each key is a field being queried and the value is
-            another dictionary defining the operators and their corresponding
-            values. Operators include `$eq`, `$ne`, `$lt`, `$lte`, `$gt`, and `$gte`.
-            Example:
-            {
-                "field_name": {
-                    "$operator": value
-                }
-            }
-        :return:
-            A tuple containing:
-            - A string representing the SQL condition clause where the
-              conditions for the provided fields are joined with `AND`.
-            - A dictionary where keys are derived from field names
-              (ensuring compliance with SQL) and values correspond to
-              the conditions specified in the input statement.
+        :return: A tuple consisting of:
+            - An SQL query string that combines the conditions using "AND".
+            - A dictionary of parameters mapping field names to their values
+              for the prepared SQL statement.
         """
         sql_parts = []
         params = {}
@@ -73,26 +56,29 @@ class QueryToSQL:
 
     def query_selector_to_sql(self, selector: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
-        Converts a selector dictionary into an SQL WHERE clause and its associated parameters. The method
-        parses a nested dictionary structure with logical operators such as `$and` and `$or`,
-        and builds the corresponding SQL conditions while collecting the necessary query
-        parameters. It supports deeply nested logical expressions and conditional statements.
+        Converts a nested selector dictionary into a SQL WHERE clause and its corresponding
+        parameters. The function processes the input selector, which may contain nested logical
+        operators ("$and", "$or") and statements, recursively converting these into SQL
+        conditions. The resulting SQL conditions and the associated parameters are returned.
 
-        :param selector: A dictionary containing the selector query structure to be converted
-            into SQL format. The dictionary can contain keys such as `operator`,
-            which may include logical operators `$and` or `$or`, along with statements.
-            Each statement represents an individual condition or nested condition to
-            be processed.
+        :param selector: The dictionary representing the query selector. It may contain the keys
+            "statement" to define a condition and/or "operator" which itself contains logical
+            operators such as "$and" or "$or" to group multiple conditions.
         :type selector: Dict[str, Any]
 
-        :return: A tuple where the first element is a string containing the SQL WHERE clause
-            generated from the selector, and the second element is a dictionary of parameters
-            referenced within the SQL query. Parameters are populated as they are derived
-            from statements and operators in the selector.
+        :return: A tuple containing the SQL WHERE clause as a string and a dictionary of the
+            associated parameters to be used in the SQL query. If the selector results in
+            no conditions, an empty string and an empty dictionary are returned.
         :rtype: Tuple[str, Dict[str, Any]]
+
         """
         sql_conditions = []
         params = {}
+
+        if "statement" in selector:
+            condition_sql, condition_params = self.convert_operator(selector["statement"])
+            sql_conditions.append(f"({condition_sql})")
+            params.update(condition_params)
 
         if "operator" in selector:
             for key, conditions in selector["operator"].items():
@@ -116,15 +102,5 @@ class QueryToSQL:
     def get_fields(self) -> List[str]:
         """
         Retrieves a list of all field names stored within the object.
-
-        This method accesses the internal `_fields` attribute, which contains
-        field names. The attribute is presumed to be a collection of field
-        identifiers, and this method ensures that an independent copy of
-        those field names is returned as a list. This avoids unintended
-        modifications to the original `_fields` attribute.
-
-        :return: A list of strings representing field names.
-        :rtype: List[str]
         """
         return list(self._fields)
-
