@@ -62,20 +62,23 @@ class Operator(BaseModel):
 
 class Query(BaseModel):
     """
-    Represents a query model for defining and executing data queries.
+    Represents a database query configuration.
 
-    This class serves as a data structure to represent a query with its related
-    components like the table name, columns to be queried, and selector
-    operator. It provides a organized way to define and handle query details.
+    This class encapsulates the details required for structuring
+    and executing a database query. It allows specifying the target
+    table, the columns to query, and a logical selector to filter
+    or refine query results.
 
-    :ivar query_table: The name of the table to query.
+    :ivar query_table: The name of the database table to query.
     :type query_table: AnyStr
-    :ivar query_columns: A list of column names to include in the query, if any.
+    :ivar query_columns: A list of column names to include in the query.
+                         If None, all columns are included.
     :type query_columns: Optional[List[AnyStr]]
-    :ivar selector: The selection operator that governs how the query should be
-        performed on the data provided.
-    :type selector: Operator
+    :ivar selector: A logical operator used to filter or refine query
+                    results. This can include conditions like `AND`,
+                    `OR`, etc. If None, no filtering is applied.
+    :type selector: Optional[Operator]
     """
     query_table: AnyStr
     query_columns: Optional[List[AnyStr]] = None
-    selector: Operator
+    selector: Optional[Operator]
