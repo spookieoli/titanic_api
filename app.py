@@ -50,27 +50,27 @@ class App:
         @self._app.post("/getall")
         async def getall(query: Query) -> QueryResult:
             logging.debug(f"Received query: {query}")
-            return QueryResult(result=self._db_handler.get_all(query.query_table))
+            return QueryResult(result=self._db_handler.get_all(query.query_table, query.selector))
 
         @self._app.post("/getallcolumns")
         async def get(query: Query) -> QueryResult:
             logging.debug(f"Received query: {query}")
-            return QueryResult(result=self._db_handler.get_values(query.query_table, query.query_columns))
+            return QueryResult(result=self._db_handler.get_values(query.query_table, query.query_columns, query.selector))
 
         @self._app.post("/max")
         async def get(query: Query) -> QueryResult:
             logging.debug(f"Received query: {query}")
-            return QueryResult(result=self._db_handler.get_max(query.query_table, query.query_columns))
+            return QueryResult(result=self._db_handler.get_max(query.query_table, query.query_columns, query.selector))
 
         @self._app.post("/min")
         async def get(query: Query) -> QueryResult:
             logging.debug(f"Received query: {query}")
-            return QueryResult(result=self._db_handler.get_min(query.query_table, query.query_columns))
+            return QueryResult(result=self._db_handler.get_min(query.query_table, query.query_columns , query.selector))
 
         @self._app.post("/avg")
         async def get(query: Query) -> QueryResult:
             logging.debug(f"Received query: {query}")
-            return QueryResult(result=self._db_handler.get_mean(query.query_table, query.query_columns))
+            return QueryResult(result=self._db_handler.get_mean(query.query_table, query.query_columns, query.selector))
 
     def run(self) -> None:
         """
