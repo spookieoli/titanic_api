@@ -1,4 +1,4 @@
-# Titanic API
+# Titan API
 
 ## Overview
 
