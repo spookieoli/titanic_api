@@ -407,6 +407,7 @@ class DBHandler:
                 result = connection.execute(query, parameters or {})
                 return self._get_json_list(result)
         except Exception as e:
+            print(e, flush=True)
             logging.debug(f"Error executing query: {e}")
             return []
 
