@@ -27,7 +27,7 @@ class App:
     :type _app: fastapi.FastAPI
     """
 
-    def __init__(self, ip: str = "localhost", port: int = 8080) -> None:
+    def __init__(self, ip: str = "localhost", port: int = 8000) -> None:
         # create instance variables
         self._port = port
         self._ip = ip
