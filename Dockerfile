@@ -16,4 +16,5 @@ EXPOSE 8080
 
 # Command to run the application using Uvicorn
 # Replace `app:app_instance` with the import path to your Uvicorn app entry point
-CMD ["uvicorn", "app:app_instance", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+
