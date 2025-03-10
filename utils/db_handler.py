@@ -407,7 +407,7 @@ class DBHandler:
                 result = connection.execute(query, parameters or {})
                 return self._get_json_list(result)
         except Exception as e:
-            logging.error(f"Error executing query: {e}")
+            logging.debug(f"Error executing query: {e}")
             return []
 
     def check_table_column_exist(self, table: str = None, columns: [str] = None) -> bool:
